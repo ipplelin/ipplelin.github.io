@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>墨水屏挂件</title>
+<style>
+  :root { --bg:#f5f5f3; --card:#fff; --fg:#1d1d1f; --mute:#6e6e73; --acc:#0a7cff; --line:#e3e3e0; --ok:#1f9d55; --err:#d93025; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111; --card:#1c1c1e; --fg:#f2f2f2; --mute:#9a9aa0; --line:#2c2c2e; --acc:#3d9bff; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.45 -apple-system, "Hiragino Sans", "PingFang SC", "Noto Sans CJK JP", sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width:520px; margin:0 auto; padding:16px 16px 48px; }
+  h1 { font-size:20px; margin:4px 0 12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+  button { font:inherit; border:0; border-radius:10px; padding:10px 14px; background:var(--acc); color:#fff; cursor:pointer; }
+  button.sec { background:transparent; color:var(--acc); border:1px solid var(--acc); }
+  button:disabled { opacity:.4; cursor:default; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .row > * { flex:1 1 auto; }
+  label { display:block; font-size:13px; color:var(--mute); margin:10px 0 4px; }
+  input[type=text], select, textarea { width:100%; font:inherit; padding:9px 10px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--fg); }
+  input[type=range] { width:100%; }
+  .tabs { display:flex; gap:6px; margin-bottom:12px; }
+  .tabs button { flex:1; background:transparent; color:var(--fg); border:1px solid var(--line); padding:8px 4px; font-size:14px; }
+  .tabs button.on { background:var(--acc); color:#fff; border-color:var(--acc); }
+  .pane { display:none; } .pane.on { display:block; }
+  canvas.preview { width:100%; image-rendering:pixelated; border:6px solid #ddd; border-radius:6px; background:#fff; }
+  #status { font-size:14px; color:var(--mute); }
+  #status.ok { color:var(--ok); } #status.err { color:var(--err); }
+  progress { width:100%; height:8px; }
+  .hint { font-size:13px; color:var(--mute); }
+</style>
+</head>
+<body>
+<main>
+  <h1>墨水屏挂件</h1>
+
+  <div class="card">
+    <div class="row">
+      <button id="btnConnect">连接挂件</button>
+      <button id="btnDisconnect" class="sec" disabled>断开</button>
+    </div>
+    <p id="status">未连接。iPhone 请用 Bluefy 浏览器打开本页。</p>
+    <progress id="prog" value="0" max="100" hidden></progress>
+  </div>
+
+  <div class="tabs">
+    <button data-tab="img" class="on">图片</button>
+    <button data-tab="card">名片</button>
+    <button data-tab="clock">时钟</button>
+    <button data-tab="find">找挂件</button>
+  </div>
+
+  <!-- 图片 -->
+  <section class="pane on" id="pane-img">
+    <div class="card">
+      <label>选择图片</label>
+      <input type="file" id="imgFile" accept="image/*">
+      <label>适配方式</label>
+      <select id="imgFit"><option value="cover">铺满（裁切）</option><option value="contain">完整显示（留白）</option></select>
+      <label>亮度 <span id="vBright">0</span></label>
+      <input type="range" id="imgBright" min="-100" max="100" value="0">
+      <label>对比度 <span id="vContrast">0</span></label>
+      <input type="range" id="imgContrast" min="-100" max="100" value="0">
+      <label>黑白处理</label>
+      <select id="imgDither"><option value="fs">抖动（照片）</option><option value="atk">抖动（Atkinson，更干净）</option><option value="th">阈值（线稿/文字）</option></select>
+      <div class="row" style="margin-top:10px">
+        <label style="margin:0"><input type="checkbox" id="imgInvert"> 反色</label>
+        <label style="margin:0"><input type="checkbox" id="imgRot"> 旋转 180°</label>
+      </div>
+    </div>
+    <div class="card">
+      <canvas id="cvImg" class="preview" width="250" height="122"></canvas>
+      <div class="row" style="margin-top:10px"><button id="btnSendImg" disabled>上传到挂件</button></div>
+      <p class="hint">上传后挂件会停止时钟，一直显示这张图。</p>
+    </div>
+  </section>
+
+  <!-- 名片 -->
+  <section class="pane" id="pane-card">
+    <div class="card">
+      <label>名字（大字）</label><input type="text" id="cName" value="山田 太郎">
+      <label>第二行</label><input type="text" id="cL2" value="落とし物を見つけたらご連絡ください">
+      <label>第三行</label><input type="text" id="cL3" value="TEL 090-0000-0000">
+      <label>第四行</label><input type="text" id="cL4" value="mail@example.com">
+      <div class="row" style="margin-top:10px">
+        <label style="margin:0"><input type="checkbox" id="cFrame" checked> 边框</label>
+        <label style="margin:0"><input type="checkbox" id="cInvertName"> 名字反白</label>
+      </div>
+    </div>
+    <div class="card">
+      <canvas id="cvCard" class="preview" width="250" height="122"></canvas>
+      <div class="row" style="margin-top:10px"><button id="btnSendCard" disabled>上传名片</button></div>
+    </div>
+  </section>
+
+  <!-- 时钟 -->
+  <section class="pane" id="pane-clock">
+    <div class="card">
+      <div class="row">
+        <button id="btnTime" disabled>同步手机时间</button>
+        <button id="btnClock" class="sec" disabled>切换到时钟</button>
+      </div>
+      <label>时钟刷新间隔（每次全刷会闪一下）</label>
+      <div class="row">
+        <select id="selInterval"><option value="1">1 分钟</option><option value="5" selected>5 分钟</option><option value="10">10 分钟</option><option value="15">15 分钟</option><option value="30">30 分钟</option></select>
+        <button id="btnInterval" class="sec" disabled>设置</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 找挂件 -->
+  <section class="pane" id="pane-find">
+    <div class="card">
+      <div class="row">
+        <button id="btnRing" disabled>响铃寻找</button>
+        <button id="btnStop" class="sec" disabled>停止</button>
+      </div>
+      <p class="hint">需要在蓝牙范围内（通常 5–10 米）。</p>
+    </div>
+  </section>
+</main>
+
+<script>
+// ---- BLE protocol (stellar-L3N-etag based firmware, Stellar-M E31H) ----
+const EPD_SERVICE = '13187b10-eba9-a3ba-044e-83d3217d9a38';
+const EPD_CHAR    = '4b646063-6264-f3a7-8941-e65356ea82fe';
+const CMD_SERVICE = 0x1f10;
+const CMD_CHAR    = 0x1f1f;
+const W = 250, H = 122;              // visible panel area
+const BUF_SIZE = 16 * 296;           // firmware frame buffer (296 x 128, 1 bpp)
+
+let device = null, epdChar = null, cmdChar = null, busy = false;
+const $ = id => document.getElementById(id);
+const statusEl = $('status'), prog = $('prog');
+function setStatus(t, cls) { statusEl.textContent = t; statusEl.className = cls || ''; }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function setConnected(on) {
+  ['btnSendImg','btnSendCard','btnTime','btnClock','btnInterval','btnRing','btnStop'].forEach(id => $(id).disabled = !on || busy);
+  $('btnDisconnect').disabled = !on; $('btnConnect').disabled = on;
+}
+
+async function connect() {
+  if (!navigator.bluetooth) { setStatus('此浏览器不支持网页蓝牙。iPhone 请用 Bluefy，安卓请用 Chrome。', 'err'); return; }
+  try {
+    setStatus('正在搜索挂件…');
+    device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: 'S24_' }], optionalServices: [EPD_SERVICE, CMD_SERVICE] });
+    device.addEventListener('gattserverdisconnected', () => { setStatus('已断开'); epdChar = cmdChar = null; setConnected(false); });
+    const gatt = await device.gatt.connect();
+    epdChar = await (await gatt.getPrimaryService(EPD_SERVICE)).getCharacteristic(EPD_CHAR);
+    cmdChar = await (await gatt.getPrimaryService(CMD_SERVICE)).getCharacteristic(CMD_CHAR);
+    setStatus('已连接：' + device.name, 'ok'); setConnected(true);
+  } catch (e) { setStatus('连接失败：' + e.message, 'err'); }
+}
+async function disconnect() { if (device && device.gatt.connected) device.gatt.disconnect(); }
+
+async function writeChar(ch, bytes) { await ch.writeValueWithResponse(new Uint8Array(bytes)); }
+const cmd = bytes => writeChar(cmdChar, bytes);
+
+async function run(fn) {
+  if (busy) return; busy = true; setConnected(true);
+  try { await fn(); } catch (e) { setStatus('出错：' + e.message, 'err'); }
+  busy = false; setConnected(!!(device && device.gatt.connected)); prog.hidden = true;
+}
+
+// ---- pack a 250x122 1-bit image (true = black) into the firmware buffer ----
+// Mirrors FixBuffer(): buffer[k*16 + (y>>3)], k = 249 - x, MSB = top pixel, 1 = white.
+function packFrame(bits) {
+  const buf = new Uint8Array(BUF_SIZE).fill(0xFF);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (bits[y * W + x]) buf[(249 - x) * 16 + (y >> 3)] &= ~(0x80 >> (y & 7));
+  }
+  return buf;
+}
+
+async function uploadFrame(bits) {
+  const buf = packFrame(bits);
+  setStatus('上传中…'); prog.hidden = false; prog.value = 0;
+  await cmd([0xE1, 0x00]);            // stop the clock scene so it won't overwrite the image
+  await sleep(300);
+  await writeChar(epdChar, [0x00, 0xFF]); // clear buffers to white
+  let chunk = 200;                    // large chunks if the phone negotiated a big MTU, else fall back
+  for (let off = 0; off < buf.length; ) {
+    const n = Math.min(chunk, buf.length - off);
+    const pkt = new Uint8Array(4 + n);
+    pkt.set([0x03, 0xFF, off >> 8, off & 0xFF]); pkt.set(buf.subarray(off, off + n), 4);
+    try { await epdChar.writeValueWithResponse(pkt); }
+    catch (e) { if (chunk > 16) { chunk = 16; continue; } throw e; }
+    off += n; prog.value = Math.round(off * 100 / buf.length);
+  }
+  await writeChar(epdChar, [0x01, 0x01]); // full refresh
+  setStatus('已发送，挂件刷新中（约 3 秒）', 'ok');
+}
+
+// ---- image tab ----
+const cvImg = $('cvImg'), ctxImg = cvImg.getContext('2d', { willReadFrequently: true });
+let srcImg = null, imgBits = null;
+$('imgFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image(); img.onload = () => { srcImg = img; renderImg(); }; img.src = URL.createObjectURL(f);
+};
+['imgFit','imgBright','imgContrast','imgDither','imgInvert','imgRot'].forEach(id => $(id).oninput = renderImg);
+
+function toBits(ctx, mode, invert) {
+  const d = ctx.getImageData(0, 0, W, H).data, g = new Float32Array(W * H), bits = new Uint8Array(W * H);
+  const b = +$('imgBright').value * 1.28, c = +$('imgContrast').value, cf = (259 * (c + 255)) / (255 * (259 - c));
+  for (let i = 0; i < W * H; i++) {
+    let v = 0.299 * d[i*4] + 0.587 * d[i*4+1] + 0.114 * d[i*4+2];
+    if (d[i*4+3] < 128) v = 255;
+    v = cf * (v - 128) + 128 + b; g[i] = Math.max(0, Math.min(255, v));
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x, old = g[i], nv = old < 128 ? 0 : 255, err = old - nv;
+    bits[i] = nv === 0 ? 1 : 0;
+    if (mode === 'fs') {
+      if (x + 1 < W) g[i+1] += err * 7/16;
+      if (y + 1 < H) { if (x > 0) g[i+W-1] += err * 3/16; g[i+W] += err * 5/16; if (x + 1 < W) g[i+W+1] += err * 1/16; }
+    } else if (mode === 'atk') {
+      const e8 = err / 8;
+      [[1,0],[2,0],[-1,1],[0,1],[1,1],[0,2]].forEach(([dx,dy]) => { const xx = x+dx, yy = y+dy; if (xx>=0 && xx<W && yy<H) g[yy*W+xx] += e8; });
+    }
+  }
+  if (invert) for (let i = 0; i < bits.length; i++) bits[i] ^= 1;
+  return bits;
+}
+function drawBits(ctx, bits) {
+  const im = ctx.createImageData(W, H);
+  for (let i = 0; i < W * H; i++) { const v = bits[i] ? 0 : 255; im.data.set([v, v, v, 255], i * 4); }
+  ctx.putImageData(im, 0, 0);
+}
+function renderImg() {
+  $('vBright').textContent = $('imgBright').value; $('vContrast').textContent = $('imgContrast').value;
+  ctxImg.fillStyle = '#fff'; ctxImg.fillRect(0, 0, W, H);
+  if (!srcImg) return;
+  const s = $('imgFit').value === 'cover' ? Math.max(W / srcImg.width, H / srcImg.height) : Math.min(W / srcImg.width, H / srcImg.height);
+  const w = srcImg.width * s, h = srcImg.height * s;
+  ctxImg.save();
+  if ($('imgRot').checked) { ctxImg.translate(W, H); ctxImg.rotate(Math.PI); }
+  ctxImg.drawImage(srcImg, (W - w) / 2, (H - h) / 2, w, h);
+  ctxImg.restore();
+  imgBits = toBits(ctxImg, $('imgDither').value, $('imgInvert').checked);
+  drawBits(ctxImg, imgBits);
+}
+$('btnSendImg').onclick = () => run(async () => { if (!imgBits) { setStatus('请先选择图片', 'err'); return; } await uploadFrame(imgBits); });
+
+// ---- business card tab ----
+const cvCard = $('cvCard'), ctxCard = cvCard.getContext('2d', { willReadFrequently: true });
+let cardBits = null;
+['cName','cL2','cL3','cL4','cFrame','cInvertName'].forEach(id => $(id).oninput = renderCard);
+function fitText(ctx, text, maxW, size, weight) {
+  let s = size; do { ctx.font = `${weight} ${s}px "Hiragino Sans","Noto Sans CJK JP","PingFang SC",sans-serif`; s--; } while (ctx.measureText(text).width > maxW && s > 8);
+}
+function renderCard() {
+  const c = ctxCard; c.fillStyle = '#fff'; c.fillRect(0, 0, W, H); c.textBaseline = 'middle'; c.textAlign = 'center';
+  const frame = $('cFrame').checked;
+  if (frame) { c.strokeStyle = '#000'; c.lineWidth = 2; c.strokeRect(2, 2, W - 4, H - 4); }
+  if ($('cInvertName').checked) { c.fillStyle = '#000'; c.fillRect(frame ? 4 : 0, frame ? 4 : 0, W - (frame ? 8 : 0), 40); c.fillStyle = '#fff'; } else c.fillStyle = '#000';
+  fitText(c, $('cName').value, W - 20, 30, 'bold'); c.fillText($('cName').value, W / 2, 25);
+  c.fillStyle = '#000';
+  [$('cL2').value, $('cL3').value, $('cL4').value].forEach((t, i) => { fitText(c, t, W - 16, 15, 'normal'); c.fillText(t, W / 2, 60 + i * 21); });
+  cardBits = toBitsPlain(c);
+  drawBits(c, cardBits);
+}
+function toBitsPlain(ctx) {   // text: plain threshold, no brightness/contrast
+  const d = ctx.getImageData(0, 0, W, H).data, bits = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) bits[i] = (0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2]) < 140 ? 1 : 0;
+  return bits;
+}
+$('btnSendCard').onclick = () => run(async () => { renderCard(); await uploadFrame(cardBits); });
+
+// ---- clock tab ----
+$('btnTime').onclick = () => run(async () => {
+  const now = new Date(), local = Math.floor(now.getTime() / 1000) - now.getTimezoneOffset() * 60;
+  const y = now.getFullYear();
+  await cmd([0xDD, local >>> 24 & 255, local >>> 16 & 255, local >>> 8 & 255, local & 255, y >> 8, y & 255, now.getMonth() + 1, now.getDate(), now.getDay()]);
+  setStatus('时间已同步：' + now.toLocaleString(), 'ok');
+});
+$('btnClock').onclick = () => run(async () => { await cmd([0xE1, 0x02]); setStatus('已切换到时钟，挂件刷新中', 'ok'); });
+$('btnInterval').onclick = () => run(async () => { const m = +$('selInterval').value; await cmd([0xC4, m]); setStatus(`时钟每 ${m} 分钟刷新`, 'ok'); });
+
+// ---- find tab ----
+$('btnRing').onclick = () => run(async () => { await cmd([0xBE, 0x0A, 0x00, 0x00, 0x14, 0x0A]); setStatus('响铃中…', 'ok'); });
+$('btnStop').onclick = () => run(async () => { await cmd([0xBF]); setStatus('已停止', 'ok'); });
+
+// ---- tabs / init ----
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + b.dataset.tab));
+  if (b.dataset.tab === 'card') renderCard();
+});
+$('btnConnect').onclick = connect; $('btnDisconnect').onclick = disconnect;
+renderImg(); renderCard();
+</script>
+</body>
+</html>
